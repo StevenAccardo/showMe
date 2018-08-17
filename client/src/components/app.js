@@ -17,24 +17,31 @@ class App extends Component {
       title: '',
       member: {},
       audience: [],
-      speaker: {}
+      speaker: '',
+      questions: [],
+      currentQuestion: false
     };
 
     this.connect = this.connect.bind(this);
     this.disconnect = this.disconnect.bind(this);
-    this.welcome = this.welcome.bind(this);
+    this.updateState = this.updateState.bind(this);
     this.emit = this.emit.bind(this);
     this.joined = this.joined.bind(this);
     this.updateAudience = this.updateAudience.bind(this);
+    this.start = this.start.bind(this);
+    this.ask = this.ask.bind(this);
   }
 
   componentDidMount() {
     this.socket = io(this.socketURL);
     this.socket.on('connect', this.connect);
     this.socket.on('disconnect', this.disconnect);
-    this.socket.on('welcome', this.welcome);
+    this.socket.on('welcome', this.updateState);
     this.socket.on('joined', this.joined);
     this.socket.on('audience', this.updateAudience);
+    this.socket.on('start', this.start);
+    this.socket.on('end', this.updateState);
+    this.socket.on('ask', this.ask);
   }
 
   emit(eventName, payload) {
@@ -44,20 +51,25 @@ class App extends Component {
   connect() {
     const member = sessionStorage.member ? JSON.parse(sessionStorage.member) : null;
 
-    if (member) {
+    if (member && member.type === 'audience') {
       this.emit('join', member);
+    } else if (member && member.type === 'speaker') {
+      this.emit('start', { name: member.name, title: sessionStorage.title });
     }
     this.setState({ status: 'connected' });
   }
 
   disconnect() {
-    this.setState({ status: 'disconnected' });
-    console.log(this.state.status);
+    this.setState({
+      status: 'disconnected',
+      title: 'disconnected',
+      speaker: ''
+    });
   }
 
   //Receives the title from the server. The title is set by the presenter.
-  welcome({ title }) {
-    this.setState({ title });
+  updateState(serverState) {
+    this.setState(serverState);
   }
 
   joined(member) {
@@ -69,10 +81,23 @@ class App extends Component {
     this.setState({ audience: newAudience });
   }
 
+  start(presentation) {
+    if (this.state.member.type === 'speaker') {
+      sessionStorage.title = presentation.title;
+    }
+    this.setState(presentation);
+  }
+  ask(question) {
+    sessionStorage.answer = '';
+    this.setState({ currentQuestion: question });
+    console.log('sessionStorage', sessionStorage);
+    console.log('question', this.state.currentQuestion);
+  }
+
   render() {
     return (
-      <div>
-        <Header title={this.state.title} status={this.state.status} />
+      <div className="container">
+        <Header {...this.state} />
         <Switch>
           <Route exact path="/" render={props => <Audience emit={this.emit} {...this.state} />} />
           <Route path="/speaker" render={props => <Speaker emit={this.emit} {...this.state} />} />
