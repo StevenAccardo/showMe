@@ -26,7 +26,7 @@ io.on('connection', socket => {
   connections.push(socket);
   console.log(`Connected with ${socket.id}, ${connections.length} clients connected.`);
 
-  socket.emit('welcome', { title, audience, questions, currentQuestion, speaker: speaker.name });
+  socket.emit('welcome', { title, results, audience, questions, currentQuestion, speaker: speaker.name });
 
   socket.on('join', function(data) {
     var newMember = {
@@ -65,6 +65,7 @@ io.on('connection', socket => {
   socket.on('answer', function(payload) {
     //increments the count for the answers from the audience
     results[payload.choice]++; //if payload.choice === 'c' then results['c'] will be incremented.
+    io.sockets.emit('results', results);
     console.log(`Answer: ${payload.choice} - ${results}`);
   });
 

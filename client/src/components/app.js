@@ -19,7 +19,8 @@ class App extends Component {
       audience: [],
       speaker: '',
       questions: [],
-      currentQuestion: false
+      currentQuestion: false,
+      results: {}
     };
 
     this.connect = this.connect.bind(this);
@@ -30,6 +31,7 @@ class App extends Component {
     this.updateAudience = this.updateAudience.bind(this);
     this.start = this.start.bind(this);
     this.ask = this.ask.bind(this);
+    this.updateResults = this.updateResults.bind(this);
   }
 
   componentDidMount() {
@@ -42,6 +44,7 @@ class App extends Component {
     this.socket.on('start', this.start);
     this.socket.on('end', this.updateState);
     this.socket.on('ask', this.ask);
+    this.socket.on('results', this.updateResults);
   }
 
   emit(eventName, payload) {
@@ -89,9 +92,14 @@ class App extends Component {
   }
   ask(question) {
     sessionStorage.answer = '';
-    this.setState({ currentQuestion: question });
-    console.log('sessionStorage', sessionStorage);
-    console.log('question', this.state.currentQuestion);
+    this.setState({
+      currentQuestion: question,
+      results: { a:0, b:0, c:0, d:0 }
+    });
+  }
+
+  updateResults(results) {
+    this.setState({ results });
   }
 
   render() {
@@ -101,7 +109,7 @@ class App extends Component {
         <Switch>
           <Route exact path="/" render={props => <Audience emit={this.emit} {...this.state} />} />
           <Route path="/speaker" render={props => <Speaker emit={this.emit} {...this.state} />} />
-          <Route path="/board" component={Board} />
+          <Route path="/board" render={props => <Board emit={this.emit} {...this.state} />} />
           <Route component={NotFound404} />
         </Switch>
       </div>
